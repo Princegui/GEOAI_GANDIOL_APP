@@ -67,6 +67,9 @@ st.subheader("📍 Sénégal")
 st.markdown("---")
 
 # =========================
+# MESSAGE INSTRUCTION CARTE
+# =========================
+st.info("✏️ Dessine un polygone sur la carte pour lancer l’analyse GEOAI")
 
 # =========================
 # SELECTION PAR COORDONNEES

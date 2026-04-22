@@ -116,7 +116,7 @@ st.sidebar.write(FEATURES)
 # =========================
 # CONSTRUCTION DU VECTEUR D'ENTREE
 # =========================
-X = np.array([[inputs[f] for f in FEATURES]])
+X = np.array([[ndvi, ndwi, bsi]])
 
 st.write("DEBUG shape X :", X.shape)
 

@@ -74,26 +74,26 @@ st.info("✏️ Dessine un polygone sur la carte pour lancer l’analyse GEOAI")
 # =========================
 # SELECTION PAR COORDONNEES
 # =========================
-st.subheader("📍 Sélection par coordonnées GPS")
+st.subheader("📍 Sélection optionnelle par coordonnées GPS")
 
 coord_text = st.text_area(
     "Entrer les coordonnées (format : lat,lon par ligne)",
-    """15.82,-16.50
-15.82,-16.45
-15.78,-16.45
-15.78,-16.50"""
+    placeholder="Exemple :\n15.82,-16.50\n15.82,-16.45\n15.78,-16.45\n15.78,-16.50"
 )
 
 polygon_coords = []
 
-if coord_text:
+if coord_text.strip() != "":
     try:
         lines = coord_text.strip().split("\n")
+
         polygon_coords = [
             [float(line.split(",")[0]), float(line.split(",")[1])]
             for line in lines
         ]
-        st.success("Polygone chargé avec succès")
+
+        st.success("📍 Polygone chargé avec succès")
+
     except:
         st.error("Format invalide. Utiliser : latitude,longitude")
         

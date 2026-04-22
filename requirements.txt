@@ -1,6 +1,8 @@
-Streamlit 
-pandas 
-numpy 
-scikit-learn 
-joblib 
-meteostat 
+streamlit
+numpy
+pandas
+scikit-learn
+joblib
+folium
+streamlit-folium
+shapely

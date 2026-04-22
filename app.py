@@ -15,12 +15,28 @@ st.set_page_config(
 )
 
 # =========================
+# LOGO USSEIN
+# =========================
+st.markdown(
+    """
+    <div style="text-align:center;">
+        <img src="https://www.ussein.sn/wp-content/uploads/2024/12/USSEIN-LOGO-copie.png" width="140">
+    </div>
+    """,
+    unsafe_allow_html=True
+)
+
+# =========================
 # STYLE
 # =========================
 st.markdown("""
 <style>
 .main { background-color: #f4f9f9; }
-h1 { color: #0b3d91; text-align: center; }
+
+h1 {
+    color: #0b3d91;
+    text-align: center;
+}
 
 .stButton>button {
     background-color: #0b3d91;
@@ -38,7 +54,7 @@ h1 { color: #0b3d91; text-align: center; }
 """, unsafe_allow_html=True)
 
 # =========================
-# CHARGEMENT MODELE
+# MODELE
 # =========================
 model = joblib.load("salinity_model_gandiol.pkl")
 
@@ -46,7 +62,7 @@ model = joblib.load("salinity_model_gandiol.pkl")
 # TITRE
 # =========================
 st.title("🌍 GEOAI - Cartographie de la salinisation des sols")
-st.subheader("📍 Zone d’étude : Gandiol - Sénégal")
+st.subheader("📍 Gandiol - Sénégal")
 
 st.markdown("---")
 
@@ -66,7 +82,7 @@ folium.TileLayer(
     control=True
 ).add_to(m)
 
-# Outil dessin
+# Outil dessin polygonal
 draw = Draw(
     export=True,
     draw_options={
@@ -85,48 +101,58 @@ map_data = st_folium(m, height=550, width=1000)
 st.markdown("---")
 
 # =========================
-# ANALYSE ZONE
+# ANALYSE GEOAI
 # =========================
 if map_data and map_data.get("last_active_drawing"):
 
     st.success("📍 Zone sélectionnée détectée")
 
-    geom = map_data["last_active_drawing"]["geometry"]
-    st.write("📌 Géométrie du polygone :")
-    st.json(geom)
-
     # =========================
-    # SIMULATION INDICES (remplacer par Sentinel-2 plus tard)
+    # SIMULATION INDICES (remplaçable Sentinel-2)
     # =========================
     ndvi_zone = np.random.uniform(0.1, 0.7)
     ndwi_zone = np.random.uniform(-0.4, 0.4)
     bsi_zone  = np.random.uniform(0.2, 0.8)
 
-    st.subheader("📊 Indices spectraux moyens de la zone")
-
-    col1, col2, col3 = st.columns(3)
-
-    col1.metric("NDVI", round(ndvi_zone, 3))
-    col2.metric("NDWI", round(ndwi_zone, 3))
-    col3.metric("BSI", round(bsi_zone, 3))
-
-    # =========================
-    # PREDICTION MODELE
-    # =========================
+    # prédiction
     X_zone = np.array([[ndvi_zone, ndwi_zone, bsi_zone]])
     pred = model.predict(X_zone)[0]
 
-    st.subheader("🧠 Résultat de prédiction GEOAI")
+    # =========================
+    # DASHBOARD
+    # =========================
+    col_map, col_stats = st.columns([2, 1])
 
-    if pred == 2:
-        st.error("🔴 Forte salinisation détectée")
-        st.write("Zone fortement dégradée — risque élevé pour agriculture")
-    elif pred == 1:
-        st.warning("🟠 Salinisation modérée")
-        st.write("Zone en transition — surveillance recommandée")
-    else:
-        st.success("🟢 Zone stable")
-        st.write("Faible risque de salinisation")
+    # -------------------------
+    # CARTE
+    # -------------------------
+    with col_map:
+        st.subheader("🗺️ Carte interactive")
+        st_folium(m, height=550, width=700)
+
+    # -------------------------
+    # RESULTATS
+    # -------------------------
+    with col_stats:
+        st.subheader("📊 Indices spectraux")
+
+        st.metric("NDVI", round(ndvi_zone, 3))
+        st.metric("NDWI", round(ndwi_zone, 3))
+        st.metric("BSI", round(bsi_zone, 3))
+
+        st.markdown("---")
+
+        st.subheader("🧠 Prédiction GEOAI")
+
+        if pred == 2:
+            st.error("🔴 Forte salinisation")
+            st.write("Zone fortement dégradée — risque élevé")
+        elif pred == 1:
+            st.warning("🟠 Salinisation modérée")
+            st.write("Zone en transition — surveillance nécessaire")
+        else:
+            st.success("🟢 Zone stable")
+            st.write("Faible risque de salinisation")
 
 else:
     st.info("✏️ Dessine un polygone sur la carte pour lancer l’analyse GEOAI")
@@ -137,6 +163,7 @@ else:
 st.markdown("""
 <div class="footer">
 🌍 Projet GEOAI - Salinisation des sols (Gandiol)<br>
+🏫 Université : USSEIN<br>
 ✍️ Magatte GUEYE
 </div>
 """, unsafe_allow_html=True)

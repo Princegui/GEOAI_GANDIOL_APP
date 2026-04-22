@@ -4,6 +4,9 @@ import numpy as np
 import folium
 from streamlit_folium import st_folium
 from folium.plugins import Draw
+import ee
+import geemap
+import json
 
 # =========================
 # CONFIG PAGE
@@ -71,6 +74,8 @@ st.markdown("---")
 # =========================
 st.info("✏️ Dessine un polygone sur la carte pour lancer l’analyse GEOAI")
 
+ee.Authenticate()
+ee.Initialize(project="mapathon-479420")
 # =========================
 # SELECTION PAR COORDONNEES
 # =========================
@@ -169,6 +174,65 @@ folium.TileLayer(
     control=True
 ).add_to(m)
 
+# =========================
+# CONVERSION POLYGONE STREAMLIT → GEE
+# =========================
+
+gee_polygon = None
+
+if map_data and map_data.get("last_active_drawing"):
+
+    geom = map_data["last_active_drawing"]["geometry"]
+
+    if geom["type"] == "Polygon":
+
+        coords = geom["coordinates"]
+
+        gee_polygon = ee.Geometry.Polygon(coords)
+        
+# =========================
+# CALCUL INDICES SENTINEL-2
+# =========================
+
+def compute_indices(year, region):
+
+    start = f"{year}-01-01"
+    end   = f"{year}-12-31"
+
+    collection = (
+        ee.ImageCollection("COPERNICUS/S2_SR")
+        .filterDate(start, end)
+        .filterBounds(region)
+        .filter(ee.Filter.lt("CLOUDY_PIXEL_PERCENTAGE", 20))
+        .median()
+    )
+
+    ndvi = collection.normalizedDifference(["B8", "B4"]).rename("NDVI")
+    ndwi = collection.normalizedDifference(["B3", "B8"]).rename("NDWI")
+
+    bsi = collection.expression(
+        "((SWIR + RED) - (NIR + BLUE)) / ((SWIR + RED) + (NIR + BLUE))",
+        {
+            "SWIR": collection.select("B11"),
+            "RED": collection.select("B4"),
+            "NIR": collection.select("B8"),
+            "BLUE": collection.select("B2"),
+        }
+    ).rename("BSI")
+
+    stats = (
+        ndvi.addBands(ndwi)
+        .addBands(bsi)
+        .reduceRegion(
+            reducer=ee.Reducer.mean(),
+            geometry=region,
+            scale=10,
+            maxPixels=1e9
+        )
+    )
+
+    return stats.getInfo()
+
 
 map_data = st_folium(m, height=550, width=1000)
 
@@ -185,21 +249,104 @@ if (map_data and map_data.get("last_active_drawing")) or polygon_coords:
     # =========================
     # SIMULATION INDICES (remplaçable Sentinel-2)
     # =========================
-    np.random.seed(annee)
+    if gee_polygon:
 
-    ndvi_zone = np.random.uniform(0.1, 0.7)
-    ndwi_zone = np.random.uniform(-0.4, 0.4)
-    bsi_zone  = np.random.uniform(0.2, 0.8)
-   
+        indices = compute_indices(annee, gee_polygon)
+
+        ndvi_zone = indices["NDVI"]
+        ndwi_zone = indices["NDWI"]
+        bsi_zone  = indices["BSI"]
     # prédiction
     X_zone = np.array([[ndvi_zone, ndwi_zone, bsi_zone]])
+   
     pred = model.predict(X_zone)[0]
+    # =========================
+# ANALYSE SPATIALE GEOAI
+# =========================
 
+    st.markdown("---")
+    st.subheader("🧭 Analyse spatiale de la salinisation")
     # =========================
     # DASHBOARD
     # =========================
     col_map, col_stats = st.columns([2, 1])
+    
+    if map_data and map_data.get("last_active_drawing"):
 
+        geom = map_data["last_active_drawing"]["geometry"]
+
+    if geom["type"] == "Polygon":
+
+        coords = geom["coordinates"][0]
+
+        # estimation surface approximative (km²)
+        import math
+
+        def polygon_area(coords):
+            area = 0
+            for i in range(len(coords)-1):
+                x1, y1 = coords[i]
+                x2, y2 = coords[i+1]
+                area += x1*y2 - x2*y1
+            return abs(area)/2
+
+        surface_estimee = polygon_area(coords)
+
+        st.metric("📐 Surface estimée analysée (approx.)", f"{round(surface_estimee,3)} km²")
+    if pred == 2:
+
+     st.error("Zone prioritaire d'intervention")
+
+    st.write("""
+Analyse spatiale :
+- Sol fortement dégradé
+- Risque de perte agricole élevé
+- Probable intrusion saline
+- Surveillance urgente recommandée
+""")
+
+elif pred == 1:
+
+    st.warning("Zone de transition écologique")
+
+    st.write("""
+Analyse spatiale :
+- Dégradation progressive observée
+- Stress hydrique potentiel
+- Zone tampon agricole fragile
+""")
+
+else:
+
+    st.success("Zone stable écologiquement")
+
+    st.write("""
+Analyse spatiale :
+- Couverture végétale satisfaisante
+- Bonne humidité du sol
+- Faible pression saline détectée
+""")
+st.markdown("### 📊 Diagnostic spectral")
+
+if ndvi_zone < 0.3:
+    st.write("🌱 Faible activité végétale détectée")
+
+if ndwi_zone < 0:
+    st.write("💧 Déficit hydrique probable")
+
+if bsi_zone > 0.4:
+    st.write("🧂 Forte exposition du sol nu (signature saline possible)")
+    
+st.markdown("### 📈 Tendance temporelle estimée")
+
+if annee < 2019:
+    st.write("Situation historique antérieure à intensification saline récente")
+
+elif 2019 <= annee <= 2021:
+    st.write("Phase intermédiaire de transformation du paysage")
+
+else:
+    st.write("Conditions récentes — pression saline actuelle probable")
     # -------------------------
     # -------------------------
     # RESULTATS
@@ -226,9 +373,6 @@ if (map_data and map_data.get("last_active_drawing")) or polygon_coords:
         else:
             st.success("🟢 Zone stable")
             st.write("Faible risque de salinisation")
-
-else:
-    st.info("✏️ Dessine un polygone sur la carte pour lancer l’analyse GEOAI")
 
 
 # =========================

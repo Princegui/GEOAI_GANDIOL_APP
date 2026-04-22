@@ -1,9 +1,14 @@
+# =========================
+# IMPORTS
+# =========================
 import streamlit as st
 import joblib
+import json
 import numpy as np
 
+
 # =========================
-# CONFIG PAGE (THEME)
+# CONFIGURATION DE LA PAGE
 # =========================
 st.set_page_config(
     page_title="GEOAI - Salinité des sols",
@@ -12,7 +17,7 @@ st.set_page_config(
 )
 
 # =========================
-# STYLE CSS (COULEURS)
+# STYLE CSS (UI COLOREE)
 # =========================
 st.markdown(
     """
@@ -49,79 +54,104 @@ st.markdown(
     unsafe_allow_html=True
 )
 
+
 # =========================
-# CHARGEMENT MODELE
+# CHARGEMENT DU MODELE ML
 # =========================
 model = joblib.load("salinity_model_gandiol.pkl")
 
+
 # =========================
-# TITRE
+# CHARGEMENT DES METADONNEES (FEATURES OFFICIELLES)
+# =========================
+with open("model_metadata.json") as f:
+    metadata = json.load(f)
+
+FEATURES = metadata["features"]
+
+
+# =========================
+# INTERFACE UTILISATEUR
 # =========================
 st.title("🌍 GEOAI - Détection de la salinisation des sols")
 st.subheader("📍 Gandiol - Sénégal")
 
 st.markdown("---")
 
-# =========================
-# INPUTS
-# =========================
 st.markdown("## 🔬 Variables environnementales")
 
-col1, col2 = st.columns(2)
 
-with col1:
-    ndvi = st.slider("NDVI (végétation)", -1.0, 1.0, 0.2)
-    ndwi = st.slider("NDWI (humidité)", -1.0, 1.0, 0.1)
-    bsi = st.slider("BSI (sol nu)", -1.0, 1.0, 0.3)
-    distance_mer = st.slider("Distance mer (km)", 0, 50, 5)
+# =========================
+# INPUT UTILISATEUR (SLIDERS)
+# ⚠️ DOIVENT RESPECTER FEATURES EXACTES
+# =========================
+inputs = {}
 
-with col2:
-    altitude = st.slider("Altitude (m)", 0, 100, 10)
-    humidite_sol = st.slider("Humidité sol", 0.0, 1.0, 0.4)
-    pluie = st.slider("Pluie (mm)", 0, 300, 120)
-    landcover = st.selectbox("Occupation du sol", {
-        "Mangrove": 0,
-        "Agriculture": 1,
-        "Urbain": 2,
-        "Sol nu": 3
-    })
+inputs["ndvi"] = st.slider("NDVI (végétation)", -1.0, 1.0, 0.2)
+inputs["ndwi"] = st.slider("NDWI (humidité)", -1.0, 1.0, 0.1)
+inputs["bsi"] = st.slider("BSI (sol nu)", -1.0, 1.0, 0.3)
+
+inputs["distance_mer"] = st.slider("Distance à la mer (km)", 0, 50, 5)
+inputs["altitude"] = st.slider("Altitude (m)", 0, 100, 10)
+inputs["humidite_sol"] = st.slider("Humidité du sol", 0.0, 1.0, 0.4)
+inputs["pluie"] = st.slider("Pluie (mm)", 0, 300, 120)
+
+inputs["landcover"] = st.selectbox(
+    "Occupation du sol",
+    [0, 1, 2, 3]  # codage numérique obligatoire pour ML
+)
+
 
 st.markdown("---")
 
+
 # =========================
-# PRÉDICTION
+# SIDEBAR : INFO MODELE
 # =========================
-if st.button("🔍 Lancer la prédiction GEOAI"):
+st.sidebar.title("🔒 Model Info")
+st.sidebar.write("Features attendues :")
+st.sidebar.write(FEATURES)
 
-    X = np.array([[
-        ndvi,
-        ndwi,
-        bsi,
-        distance_mer,
-        altitude,
-        humidite_sol,
-        pluie,
-        landcover
-    ]])
 
-    pred = model.predict(X)[0]
+# =========================
+# CONSTRUCTION DU VECTEUR D'ENTREE
+# =========================
+X = np.array([[inputs[f] for f in FEATURES]])
 
-    st.markdown("## 📊 Résultat")
+st.write("DEBUG shape X :", X.shape)
 
-    if pred == 2:
-        st.error("🔴 Forte salinisation détectée")
-        st.write("Zone à haut risque d'intrusion saline côtière.")
 
-    elif pred == 1:
-        st.warning("🟠 Salinisation modérée")
-        st.write("Zone en transition écologique.")
+# =========================
+# PREDICTION
+# =========================
+if st.button("🔍 Lancer la prédiction"):
+
+    # Vérification sécurité (anti crash sklearn)
+    if X.shape[1] == len(FEATURES):
+
+        pred = model.predict(X)[0]
+
+        # =========================
+        # INTERPRETATION RESULTAT
+        # =========================
+        if pred == 2:
+            st.error("🔴 Forte salinisation détectée")
+            st.write("Risque élevé d’intrusion saline côtière.")
+
+        elif pred == 1:
+            st.warning("🟠 Salinisation modérée")
+            st.write("Zone en transition écologique.")
+
+        else:
+            st.success("🟢 Zone stable")
+            st.write("Faible risque de salinisation.")
 
     else:
-        st.success("🟢 Zone stable")
-        st.write("Faible risque de salinisation.")
+        st.error("❌ Incompatibilité modèle / features")
+
 
 # =========================
-# FOOTER / SIGNATURE
+# FOOTER (SIGNATURE)
 # =========================
 st.markdown(
     """

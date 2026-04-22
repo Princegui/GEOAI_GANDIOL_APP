@@ -98,6 +98,22 @@ if coord_text:
         st.error("Format invalide. Utiliser : latitude,longitude")
         
         
+    # =========================
+# SELECTION TEMPORELLE
+# =========================
+st.subheader("📅 Évolution temporelle de la salinisation")
+
+annee = st.slider(
+    "Choisir une année d’analyse",
+    min_value=2016,
+    max_value=2025,
+    value=2020,
+    step=1
+)
+
+st.caption(f"Analyse simulée pour l'année : {annee}")
+
+
 # CARTE INTERACTIVE
 # =========================
 st.subheader("🗺️ Carte interactive - Sélection de zone")
@@ -169,10 +185,12 @@ if (map_data and map_data.get("last_active_drawing")) or polygon_coords:
     # =========================
     # SIMULATION INDICES (remplaçable Sentinel-2)
     # =========================
+    np.random.seed(annee)
+
     ndvi_zone = np.random.uniform(0.1, 0.7)
     ndwi_zone = np.random.uniform(-0.4, 0.4)
     bsi_zone  = np.random.uniform(0.2, 0.8)
-
+   
     # prédiction
     X_zone = np.array([[ndvi_zone, ndwi_zone, bsi_zone]])
     pred = model.predict(X_zone)[0]
@@ -194,7 +212,9 @@ if (map_data and map_data.get("last_active_drawing")) or polygon_coords:
         st.metric("BSI", round(bsi_zone, 3))
 
         st.markdown("---")
+        st.subheader("📈 Evolution temporelle")
 
+        st.write(f"Analyse de la salinité estimée pour l'année {annee}")
         st.subheader("🧠 Prédiction GEOAI")
 
         if pred == 2:
@@ -210,6 +230,17 @@ if (map_data and map_data.get("last_active_drawing")) or polygon_coords:
 else:
     st.info("✏️ Dessine un polygone sur la carte pour lancer l’analyse GEOAI")
 
+historique = []
+
+for y in range(2016, 2025):
+    np.random.seed(y)
+    historique.append(model.predict([[ 
+        np.random.uniform(0.1,0.7),
+        np.random.uniform(-0.4,0.4),
+        np.random.uniform(0.2,0.8)
+    ]])[0])
+
+st.line_chart(historique)
 # =========================
 # FOOTER
 # =========================

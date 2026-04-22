@@ -67,6 +67,34 @@ st.subheader("📍 Sénégal")
 st.markdown("---")
 
 # =========================
+
+# =========================
+# SELECTION PAR COORDONNEES
+# =========================
+st.subheader("📍 Sélection par coordonnées GPS")
+
+coord_text = st.text_area(
+    "Entrer les coordonnées (format : lat,lon par ligne)",
+    """15.82,-16.50
+15.82,-16.45
+15.78,-16.45
+15.78,-16.50"""
+)
+
+polygon_coords = []
+
+if coord_text:
+    try:
+        lines = coord_text.strip().split("\n")
+        polygon_coords = [
+            [float(line.split(",")[0]), float(line.split(",")[1])]
+            for line in lines
+        ]
+        st.success("Polygone chargé avec succès")
+    except:
+        st.error("Format invalide. Utiliser : latitude,longitude")
+        
+        
 # CARTE INTERACTIVE
 # =========================
 st.subheader("🗺️ Carte interactive - Sélection de zone")
@@ -82,6 +110,22 @@ folium.TileLayer(
     control=True
 ).add_to(m)
 
+# =========================
+# AJOUT POLYGONE COORDONNEES
+# =========================
+if polygon_coords:
+
+    folium.Polygon(
+        locations=polygon_coords,
+        color="red",
+        fill=True,
+        fill_opacity=0.3,
+        tooltip="Zone sélectionnée par coordonnées"
+    ).add_to(m)
+
+    # Centrage automatique carte
+    m.location = polygon_coords[0]
+    
 # Outil dessin polygonal
 draw = Draw(
     export=True,
@@ -115,7 +159,7 @@ folium.LayerControl().add_to(m)
 # =========================
 # ANALYSE GEOAI
 # =========================
-if map_data and map_data.get("last_active_drawing"):
+if (map_data and map_data.get("last_active_drawing")) or polygon_coords:
 
     st.success("📍 Zone sélectionnée détectée")
 

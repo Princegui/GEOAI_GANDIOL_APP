@@ -124,12 +124,6 @@ if map_data and map_data.get("last_active_drawing"):
     col_map, col_stats = st.columns([2, 1])
 
     # -------------------------
-    # CARTE
-    # -------------------------
-    with col_map:
-        st.subheader("🗺️ Carte interactive")
-        st_folium(m, height=550, width=700)
-
     # -------------------------
     # RESULTATS
     # -------------------------

@@ -9,7 +9,7 @@ from folium.plugins import Draw
 # CONFIG PAGE
 # =========================
 st.set_page_config(
-    page_title="GEOAI - Salinité des sols",
+    page_title="GEOAI - Salinité des sols au Sénégal",
     page_icon="🌍",
     layout="wide"
 )
@@ -62,7 +62,7 @@ model = joblib.load("salinity_model_gandiol.pkl")
 # TITRE
 # =========================
 st.title("🌍 GEOAI - Cartographie de la salinisation des sols")
-st.subheader("📍 Gandiol - Sénégal")
+st.subheader("📍 Sénégal")
 
 st.markdown("---")
 
@@ -95,11 +95,23 @@ draw = Draw(
     }
 )
 draw.add_to(m)
+# =========================
+# LABELS (TOPONYMIE SEULE)
+# =========================
+folium.TileLayer(
+    tiles="https://mt1.google.com/vt/lyrs=h&x={x}&y={y}&z={z}",
+    attr="Google Labels",
+    name="Toponymie",
+    overlay=True,
+    control=True
+).add_to(m)
+
 
 map_data = st_folium(m, height=550, width=1000)
 
 st.markdown("---")
 
+folium.LayerControl().add_to(m)
 # =========================
 # ANALYSE GEOAI
 # =========================
@@ -156,8 +168,8 @@ else:
 # =========================
 st.markdown("""
 <div class="footer">
-🌍 Projet GEOAI - Salinisation des sols (Gandiol)<br>
-🏫 Université : USSEIN<br>
+🌍 Projet GEOAI - Salinisation des sols <br>
+🏫 Université : USSEIN (Master Géomatique) <br>
 ✍️ Magatte GUEYE
 </div>
 """, unsafe_allow_html=True)

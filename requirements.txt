@@ -6,3 +6,6 @@ joblib
 folium
 streamlit-folium
 shapely
+earthengine-api
+geemap
+

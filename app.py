@@ -1,7 +1,9 @@
 import streamlit as st
 import joblib
 import numpy as np
-import json
+import folium
+from streamlit_folium import st_folium
+from folium.plugins import Draw
 
 # =========================
 # CONFIG PAGE
@@ -9,35 +11,31 @@ import json
 st.set_page_config(
     page_title="GEOAI - Salinité des sols",
     page_icon="🌍",
-    layout="centered"
+    layout="wide"
 )
 
 # =========================
-# STYLE UI
+# STYLE
 # =========================
-st.markdown(
-    """
-    <style>
-    .main { background-color: #f4f9f9; }
+st.markdown("""
+<style>
+.main { background-color: #f4f9f9; }
+h1 { color: #0b3d91; text-align: center; }
 
-    h1 { color: #0b3d91; text-align: center; }
+.stButton>button {
+    background-color: #0b3d91;
+    color: white;
+    border-radius: 10px;
+    padding: 10px;
+}
 
-    .stButton>button {
-        background-color: #0b3d91;
-        color: white;
-        border-radius: 10px;
-        padding: 10px;
-    }
-
-    .footer {
-        text-align: center;
-        color: gray;
-        margin-top: 40px;
-    }
-    </style>
-    """,
-    unsafe_allow_html=True
-)
+.footer {
+    text-align: center;
+    color: gray;
+    margin-top: 40px;
+}
+</style>
+""", unsafe_allow_html=True)
 
 # =========================
 # CHARGEMENT MODELE
@@ -47,58 +45,98 @@ model = joblib.load("salinity_model_gandiol.pkl")
 # =========================
 # TITRE
 # =========================
-st.title("🌍 GEOAI - Salinisation des sols")
-st.subheader("📍 Gandiol - Sénégal")
+st.title("🌍 GEOAI - Cartographie de la salinisation des sols")
+st.subheader("📍 Zone d’étude : Gandiol - Sénégal")
 
 st.markdown("---")
 
 # =========================
-# INPUTS (⚠️ UNIQUEMENT VARIABLES DU MODELE)
+# CARTE INTERACTIVE
 # =========================
-ndvi = st.slider("NDVI (végétation)", -1.0, 1.0, 0.2)
-ndwi = st.slider("NDWI (humidité)", -1.0, 1.0, 0.1)
-bsi  = st.slider("BSI (sol nu)", -1.0, 1.0, 0.3)
+st.subheader("🗺️ Carte interactive - Sélection de zone")
+
+m = folium.Map(location=[15.8, -16.5], zoom_start=11, tiles="OpenStreetMap")
+
+# Satellite Google
+folium.TileLayer(
+    tiles="https://mt1.google.com/vt/lyrs=s&x={x}&y={y}&z={z}",
+    attr="Google",
+    name="Satellite",
+    overlay=False,
+    control=True
+).add_to(m)
+
+# Outil dessin
+draw = Draw(
+    export=True,
+    draw_options={
+        "polyline": False,
+        "rectangle": True,
+        "circle": False,
+        "circlemarker": False,
+        "marker": False,
+        "polygon": True
+    }
+)
+draw.add_to(m)
+
+map_data = st_folium(m, height=550, width=1000)
+
+st.markdown("---")
 
 # =========================
-# DEBUG IMPORTANT
+# ANALYSE ZONE
 # =========================
-st.write("🔎 Modèle attend :", model.n_features_in_, "features")
+if map_data and map_data.get("last_active_drawing"):
 
-# =========================
-# PREDICTION
-# =========================
-if st.button("🔍 Lancer la prédiction"):
+    st.success("📍 Zone sélectionnée détectée")
 
-    # ⚠️ IMPORTANT : EXACT MATCH MODELE
-    X = np.array([[ndvi, ndwi, bsi]])
-
-    st.write("DEBUG X shape:", X.shape)
-
-    pred = model.predict(X)[0]
+    geom = map_data["last_active_drawing"]["geometry"]
+    st.write("📌 Géométrie du polygone :")
+    st.json(geom)
 
     # =========================
-    # RESULTATS
+    # SIMULATION INDICES (remplacer par Sentinel-2 plus tard)
     # =========================
+    ndvi_zone = np.random.uniform(0.1, 0.7)
+    ndwi_zone = np.random.uniform(-0.4, 0.4)
+    bsi_zone  = np.random.uniform(0.2, 0.8)
+
+    st.subheader("📊 Indices spectraux moyens de la zone")
+
+    col1, col2, col3 = st.columns(3)
+
+    col1.metric("NDVI", round(ndvi_zone, 3))
+    col2.metric("NDWI", round(ndwi_zone, 3))
+    col3.metric("BSI", round(bsi_zone, 3))
+
+    # =========================
+    # PREDICTION MODELE
+    # =========================
+    X_zone = np.array([[ndvi_zone, ndwi_zone, bsi_zone]])
+    pred = model.predict(X_zone)[0]
+
+    st.subheader("🧠 Résultat de prédiction GEOAI")
+
     if pred == 2:
-        st.error("🔴 Forte salinisation")
-        st.write("Risque élevé d'intrusion saline")
-
+        st.error("🔴 Forte salinisation détectée")
+        st.write("Zone fortement dégradée — risque élevé pour agriculture")
     elif pred == 1:
         st.warning("🟠 Salinisation modérée")
-        st.write("Zone en transition")
-
+        st.write("Zone en transition — surveillance recommandée")
     else:
         st.success("🟢 Zone stable")
+        st.write("Faible risque de salinisation")
+
+else:
+    st.info("✏️ Dessine un polygone sur la carte pour lancer l’analyse GEOAI")
 
 # =========================
-# FOOTER / SIGNATURE
+# FOOTER
 # =========================
-st.markdown(
-    """
-    <div class="footer">
-    🌍 Projet GEOAI - Salinité des sols<br>
-    ✍️ Magatte GUEYE
-    </div>
-    """,
-    unsafe_allow_html=True
-)
+st.markdown("""
+<div class="footer">
+🌍 Projet GEOAI - Salinisation des sols (Gandiol)<br>
+✍️ Magatte GUEYE
+</div>
+""", unsafe_allow_html=True)

@@ -230,17 +230,7 @@ if (map_data and map_data.get("last_active_drawing")) or polygon_coords:
 else:
     st.info("✏️ Dessine un polygone sur la carte pour lancer l’analyse GEOAI")
 
-historique = []
 
-for y in range(2016, 2025):
-    np.random.seed(y)
-    historique.append(model.predict([[ 
-        np.random.uniform(0.1,0.7),
-        np.random.uniform(-0.4,0.4),
-        np.random.uniform(0.2,0.8)
-    ]])[0])
-
-st.line_chart(historique)
 # =========================
 # FOOTER
 # =========================

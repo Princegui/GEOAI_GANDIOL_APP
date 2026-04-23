@@ -53,7 +53,7 @@ st.markdown(
     """
     <div style="text-align:center;">
         <img src="https://www.ussein.sn/wp-content/uploads/2024/12/USSEIN-LOGO-copie.png" width="130">
-        <h1>🌍 GEOAI Pro - Cartographie de la salinisation des sols</h1>
+        <h1>🌍 GEOAI - Cartographie de la salinisation des sols</h1>
         <h3>Analyse intelligente des sols salinisés | Sénégal</h3>
     </div>
     """,

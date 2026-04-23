@@ -5,7 +5,9 @@ scikit-learn
 joblib
 folium
 streamlit-folium
-shapely
+tensorflow
+keras
+matplotlib
+plotly
 earthengine-api
 geemap
-

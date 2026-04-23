@@ -1,5 +1,5 @@
 # ============================================================
-# 🌍 GEOAI - SALINISATION DES SOLS (VERSION FINALE)
+# 🌍 GEOAI - SALINISATION DES SOLS (VERSION FINALE CORRIGÉE)
 # ============================================================
 
 import streamlit as st
@@ -8,6 +8,7 @@ import joblib
 import folium
 from streamlit_folium import st_folium
 from folium.plugins import Draw
+from tensorflow import keras
 
 # =========================
 # CONFIG
@@ -29,7 +30,7 @@ h1 {text-align:center; color:#0b3d91;}
 """, unsafe_allow_html=True)
 
 # =========================
-# LOGO USSEIN
+# LOGO
 # =========================
 st.image(
     "https://www.ussein.sn/wp-content/uploads/2024/12/USSEIN-LOGO-copie.png",
@@ -37,13 +38,18 @@ st.image(
 )
 
 # =========================
-# CHARGEMENT MODELE
+# MODE CONFIG
 # =========================
-# 👉 Choisir UN des deux modèle     
+USE_DL = False  # True = Deep Learning / False = ML (.pkl)
 
-
-USE_DL = False  # ou True si tu utilises TensorFlow
-model = joblib.load("scaler_geoai.pkl")
+# =========================
+# CHARGEMENT MODELES
+# =========================
+if USE_DL:
+    model = keras.models.load_model("geoai_model.h5")
+    scaler = joblib.load("scaler_geoai.pkl")
+else:
+    model = joblib.load("geoai_model.pkl")
 
 # =========================
 # TITRE
@@ -52,7 +58,7 @@ st.title("🌍 GEOAI - Cartographie de la salinisation des sols")
 st.subheader("📍 Sénégal - Zone de Gandiol")
 
 # =========================
-# SLIDER TEMPS
+# TEMPS
 # =========================
 annee = st.slider("📅 Année d’analyse", 2016, 2024, 2022)
 
@@ -65,7 +71,7 @@ m = folium.Map(location=[15.8, -16.5], zoom_start=11)
 
 folium.TileLayer(
     tiles="https://mt1.google.com/vt/lyrs=y&x={x}&y={y}&z={z}",
-    attr="Google Satellite + Labels",
+    attr="Google Satellite",
     name="Satellite"
 ).add_to(m)
 
@@ -81,7 +87,7 @@ if map_data and map_data.get("last_active_drawing"):
     st.success("📍 Zone sélectionnée")
 
     # =========================
-    # SIMULATION INDICES (ou remplacer par GEE)
+    # INDICES SIMULÉS
     # =========================
     np.random.seed(annee)
 
@@ -90,14 +96,17 @@ if map_data and map_data.get("last_active_drawing"):
     bsi  = np.random.uniform(0.2, 0.9)
     sar  = np.random.uniform(0.2, 1.0)
 
+    # =========================
+    # FEATURES
+    # =========================
     X = np.array([[ndvi, ndwi, bsi, sar]])
 
     # =========================
-    # PREDICTION
+    # PREDICTION SAFE
     # =========================
     if USE_DL:
-        X = scaler.transform(X)
-        pred = np.argmax(model.predict(X))
+        X_scaled = scaler.transform(X)
+        pred = np.argmax(model.predict(X_scaled))
     else:
         pred = model.predict(X)[0]
 

@@ -1,5 +1,5 @@
 # ============================================================
-# 🌍 GEOAI - SALINISATION DES SOLS (VERSION FINALE CORRIGÉE)
+# 🌍 GEOAI STREAMLIT APP FINAL CLOUD VERSION
 # ============================================================
 
 import streamlit as st
@@ -8,11 +8,12 @@ import joblib
 import folium
 from streamlit_folium import st_folium
 from folium.plugins import Draw
-
+import os
 
 # =========================
-# CONFIG
+# CONFIG PAGE
 # =========================
+
 st.set_page_config(
     page_title="GEOAI Salinisation",
     page_icon="🌍",
@@ -22,6 +23,7 @@ st.set_page_config(
 # =========================
 # STYLE
 # =========================
+
 st.markdown("""
 <style>
 h1 {text-align:center; color:#0b3d91;}
@@ -30,65 +32,62 @@ h1 {text-align:center; color:#0b3d91;}
 """, unsafe_allow_html=True)
 
 # =========================
-# LOGO
+# LOGO USSEIN
 # =========================
+
 st.image(
     "https://www.ussein.sn/wp-content/uploads/2024/12/USSEIN-LOGO-copie.png",
     width=120
 )
 
 # =========================
-# MODE CONFIG
+# LOAD MODEL SAFE
 # =========================
-USE_DL = False  # True = Deep Learning / False = ML (.pkl)
 
-# =========================
-# CHARGEMENT MODELES
-# =========================
-if USE_DL:
-   
-    scaler = joblib.load("scaler_geoai.pkl")
-else:
-    model = joblib.load("geoai_model.pkl")
+MODEL_PATH = os.path.join(
+    os.path.dirname(__file__),
+    "geoai_model.pkl"
+)
+
+try:
+    model = joblib.load(MODEL_PATH)
+except Exception as e:
+    st.error("❌ Impossible de charger geoai_model.pkl")
+    st.stop()
 
 # =========================
 # TITRE
 # =========================
+
 st.title("🌍 GEOAI - Cartographie de la salinisation des sols")
-st.subheader("📍 Sénégal - Zone de Gandiol")
+st.subheader("📍 Zone test : Gandiol (Sénégal)")
 
 # =========================
-# TEMPS
+# SLIDER TEMPOREL
 # =========================
+
 annee = st.slider("📅 Année d’analyse", 2016, 2024, 2022)
 
 # =========================
-# CARTE
+# CARTE INTERACTIVE
 # =========================
-st.subheader("🗺️ Sélection de zone")
+
+st.subheader("🗺️ Dessine une zone d’analyse")
 
 m = folium.Map(location=[15.8, -16.5], zoom_start=11)
 
-folium.TileLayer(
-    tiles="https://mt1.google.com/vt/lyrs=y&x={x}&y={y}&z={z}",
-    attr="Google Satellite",
-    name="Satellite"
-).add_to(m)
-
 Draw(export=True).add_to(m)
 
-map_data = st_folium(m, height=550, width=1000)
+map_data = st_folium(m, height=550)
 
 # =========================
 # ANALYSE
 # =========================
+
 if map_data and map_data.get("last_active_drawing"):
 
-    st.success("📍 Zone sélectionnée")
+    st.success("Zone sélectionnée")
 
-    # =========================
-    # INDICES SIMULÉS
-    # =========================
     np.random.seed(annee)
 
     ndvi = np.random.uniform(0.1, 0.8)
@@ -96,66 +95,41 @@ if map_data and map_data.get("last_active_drawing"):
     bsi  = np.random.uniform(0.2, 0.9)
     sar  = np.random.uniform(0.2, 1.0)
 
-    # =========================
-    # FEATURES
-    # =========================
     X = np.array([[ndvi, ndwi, bsi, sar]])
 
-    # =========================
-    # PREDICTION SAFE
-    # =========================
-    if USE_DL:
-        X_scaled = scaler.transform(X)
-        pred = np.argmax(model.predict(X_scaled))
-    else:
-        pred = model.predict(X)[0]
+    pred = model.predict(X)[0]
 
-    # =========================
-    # DASHBOARD
-    # =========================
-    col1, col2 = st.columns([2, 1])
+    col1, col2 = st.columns([2,1])
 
     with col2:
 
-        st.subheader("📊 Indices")
+        st.subheader("Indices")
 
-        st.metric("NDVI", round(ndvi, 3))
-        st.metric("NDWI", round(ndwi, 3))
-        st.metric("BSI", round(bsi, 3))
-        st.metric("SAR", round(sar, 3))
+        st.metric("NDVI", round(ndvi,3))
+        st.metric("NDWI", round(ndwi,3))
+        st.metric("BSI", round(bsi,3))
+        st.metric("SAR", round(sar,3))
 
-        st.markdown("---")
-        st.subheader("🧠 Salinisation")
+        st.subheader("Diagnostic salinité")
 
         if pred == 2:
             st.error("🔴 Forte salinisation")
         elif pred == 1:
-            st.warning("🟠 Modérée")
+            st.warning("🟠 Salinisation modérée")
         else:
-            st.success("🟢 Stable")
-
-        # =========================
-        # ANALYSE SPATIALE
-        # =========================
-        st.markdown("---")
-        st.subheader("🧭 Analyse spatiale")
-
-        if ndvi < 0.3:
-            st.write("🌱 Faible végétation")
-        if ndwi < 0:
-            st.write("💧 Stress hydrique")
-        if bsi > 0.5:
-            st.write("🧂 Sol potentiellement salin")
+            st.success("🟢 Zone stable")
 
 else:
-    st.info("✏️ Dessine une zone sur la carte pour analyser")
+
+    st.info("✏️ Dessine un polygone sur la carte")
 
 # =========================
 # FOOTER
 # =========================
+
 st.markdown("""
-<div style="text-align:center; margin-top:40px; color:gray;">
-🌍 GEOAI - USSEIN | Salinisation des sols<br>
-✍️ Magatte GUEYE
+<div style="text-align:center;color:gray;margin-top:40px">
+🌍 GEOAI – USSEIN (Master Géomatique)  
+Magatte GUEYE
 </div>
 """, unsafe_allow_html=True)

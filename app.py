@@ -39,9 +39,10 @@ st.image(
 # =========================
 # CHARGEMENT MODELE
 # =========================
-# 👉 Choisir UN des deux modèle
+# 👉 Choisir UN des deux modèle     
 
 
+USE_DL = False  # ou True si tu utilises TensorFlow
 model = joblib.load("scaler_geoai.pkl")
 
 # =========================

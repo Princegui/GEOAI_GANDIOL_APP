@@ -1,11 +1,9 @@
 streamlit==1.36.0
-numpy
+numpy==1.26.4
 pandas
 scikit-learn
 joblib
 folium
 streamlit-folium
-tensorflow==2.15.0
-keras
-earthengine-api
-geemap
+matplotlib
+plotly

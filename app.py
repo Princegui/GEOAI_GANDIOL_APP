@@ -8,7 +8,6 @@ import joblib
 import folium
 from streamlit_folium import st_folium
 from folium.plugins import Draw
-from tensorflow import keras
 
 # =========================
 # CONFIG
@@ -40,15 +39,10 @@ st.image(
 # =========================
 # CHARGEMENT MODELE
 # =========================
-# 👉 Choisir UN des deux modèles
+# 👉 Choisir UN des deux modèle
 
-USE_DL = False  # True si modèle Deep Learning (.h5)
 
-if USE_DL:
-    model = keras.models.load_model("geoai_model.h5")
-    scaler = joblib.load("scaler_geoai.pkl")
-else:
-    model = joblib.load("geoai_model.pkl")
+model = joblib.load("geoai_model.pkl")
 
 # =========================
 # TITRE

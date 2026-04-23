@@ -42,7 +42,7 @@ st.image(
 # 👉 Choisir UN des deux modèle
 
 
-model = joblib.load("geoai_model.pkl")
+model = joblib.load("scaler_geoai.pkl")
 
 # =========================
 # TITRE

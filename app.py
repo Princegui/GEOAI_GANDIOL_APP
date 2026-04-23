@@ -1,152 +1,99 @@
 import streamlit as st
 import joblib
 import numpy as np
+import pandas as pd
 import folium
+import matplotlib.pyplot as plt
 from streamlit_folium import st_folium
 from folium.plugins import Draw
 
 # =========================
-# CONFIG PAGE
+# CONFIGURATION PAGE
 # =========================
 st.set_page_config(
-    page_title="GEOAI - Salinité des sols au Sénégal",
+    page_title="GEOAI Pro - Salinisation des sols",
     page_icon="🌍",
     layout="wide"
 )
 
 # =========================
-# LOGO USSEIN
-# =========================
-st.markdown(
-    """
-    <div style="text-align:center;">
-        <img src="https://www.ussein.sn/wp-content/uploads/2024/12/USSEIN-LOGO-copie.png" width="140">
-    </div>
-    """,
-    unsafe_allow_html=True
-)
-
-# =========================
-# STYLE
+# STYLE PROFESSIONNEL
 # =========================
 st.markdown("""
 <style>
-.main { background-color: #f4f9f9; }
-
-h1 {
-    color: #0b3d91;
-    text-align: center;
+.main {
+    background-color: #f7fafc;
 }
 
-.stButton>button {
+h1, h2, h3 {
+    color: #0b3d91;
+}
+
+.stButton > button {
     background-color: #0b3d91;
     color: white;
-    border-radius: 10px;
-    padding: 10px;
+    border-radius: 12px;
+    padding: 0.6rem 1.2rem;
+    border: none;
+}
+
+.block-container {
+    padding-top: 2rem;
 }
 
 .footer {
     text-align: center;
     color: gray;
-    margin-top: 40px;
+    margin-top: 50px;
+    font-size: 14px;
 }
 </style>
 """, unsafe_allow_html=True)
 
 # =========================
-# MODELE
+# LOGO + TITRE
 # =========================
-model = joblib.load("salinity_model_gandiol.pkl")
-
-# =========================
-# TITRE
-# =========================
-st.title("🌍 GEOAI - Cartographie de la salinisation des sols")
-st.subheader("📍 Sénégal")
+st.markdown(
+    """
+    <div style="text-align:center;">
+        <img src="https://www.ussein.sn/wp-content/uploads/2024/12/USSEIN-LOGO-copie.png" width="130">
+        <h1>🌍 GEOAI Pro - Cartographie de la salinisation des sols</h1>
+        <h3>Analyse intelligente | Sénégal</h3>
+    </div>
+    """,
+    unsafe_allow_html=True
+)
 
 st.markdown("---")
 
 # =========================
-# MESSAGE INSTRUCTION CARTE
+# CHARGEMENT MODELE
 # =========================
-st.info("✏️ Dessine un polygone sur la carte pour lancer l’analyse GEOAI")
+model = joblib.load("salinity_model_gandiol.pkl")
 
 # =========================
-# SELECTION PAR COORDONNEES
+# SIDEBAR
 # =========================
-st.subheader("📍 Sélection optionnelle par coordonnées GPS")
+st.sidebar.header("⚙️ Paramètres d'analyse")
 
-coord_text = st.text_area(
-    "Entrer les coordonnées (format : lat,lon par ligne)",
-    placeholder="Exemple :\n15.82,-16.50\n15.82,-16.45\n15.78,-16.45\n15.78,-16.50"
-)
-
-polygon_coords = []
-
-if coord_text.strip() != "":
-    try:
-        lines = coord_text.strip().split("\n")
-
-        polygon_coords = [
-            [float(line.split(",")[0]), float(line.split(",")[1])]
-            for line in lines
-        ]
-
-        st.success("📍 Polygone chargé avec succès")
-
-    except:
-        st.error("Format invalide. Utiliser : latitude,longitude")
-        
-        
-    # =========================
-# SELECTION TEMPORELLE
-# =========================
-st.subheader("📅 Évolution temporelle de la salinisation")
-
-annee = st.slider(
-    "Choisir une année d’analyse",
+annee = st.sidebar.slider(
+    "Choisir l'année",
     min_value=2016,
     max_value=2025,
     value=2020,
     step=1
 )
 
-st.caption(f"Analyse simulée pour l'année : {annee}")
-
-
-# CARTE INTERACTIVE
-# =========================
-st.subheader("🗺️ Carte interactive - Sélection de zone")
-
-m = folium.Map(location=[15.8, -16.5], zoom_start=11, tiles="OpenStreetMap")
-
-# Satellite Google
-folium.TileLayer(
-    tiles="https://mt1.google.com/vt/lyrs=s&x={x}&y={y}&z={z}",
-    attr="Google",
-    name="Satellite",
-    overlay=False,
-    control=True
-).add_to(m)
+st.sidebar.info(f"Analyse pour l'année : {annee}")
 
 # =========================
-# AJOUT POLYGONE COORDONNEES
+# CARTE
 # =========================
-if polygon_coords:
+st.subheader("🗺️ Sélection de la zone d'étude")
 
-    folium.Polygon(
-        locations=polygon_coords,
-        color="red",
-        fill=True,
-        fill_opacity=0.3,
-        tooltip="Zone sélectionnée par coordonnées"
-    ).add_to(m)
+m = folium.Map(location=[15.8, -16.5], zoom_start=10, tiles="OpenStreetMap")
 
-    # Centrage automatique carte
-    m.location = polygon_coords[0]
-    
-# Outil dessin polygonal
-draw = Draw(
+Draw(
     export=True,
     draw_options={
         "polyline": False,
@@ -156,88 +103,80 @@ draw = Draw(
         "marker": False,
         "polygon": True
     }
-)
-draw.add_to(m)
-# =========================
-# LABELS (TOPONYMIE SEULE)
-# =========================
-folium.TileLayer(
-    tiles="https://mt1.google.com/vt/lyrs=h&x={x}&y={y}&z={z}",
-    attr="Google Labels",
-    name="Toponymie",
-    overlay=True,
-    control=True
 ).add_to(m)
 
-
-map_data = st_folium(m, height=550, width=1000)
+map_data = st_folium(m, height=500, width=1200)
 
 st.markdown("---")
 
-folium.LayerControl().add_to(m)
 # =========================
-# ANALYSE GEOAI
+# ANALYSE SI ZONE SELECTIONNEE
 # =========================
-if (map_data and map_data.get("last_active_drawing")) or polygon_coords:
+if map_data and map_data.get("last_active_drawing"):
+    st.success("Zone détectée avec succès")
 
-    st.success("📍 Zone sélectionnée détectée")
-
-    # =========================
-    # SIMULATION INDICES (remplaçable Sentinel-2)
-    # =========================
     np.random.seed(annee)
 
     ndvi_zone = np.random.uniform(0.1, 0.7)
     ndwi_zone = np.random.uniform(-0.4, 0.4)
-    bsi_zone  = np.random.uniform(0.2, 0.8)
-   
-    # prédiction
+    bsi_zone = np.random.uniform(0.2, 0.8)
+
     X_zone = np.array([[ndvi_zone, ndwi_zone, bsi_zone]])
     pred = model.predict(X_zone)[0]
 
-    # =========================
-    # DASHBOARD
-    # =========================
-    col_map, col_stats = st.columns([2, 1])
+    col1, col2 = st.columns([1, 1])
 
-    # -------------------------
-    # -------------------------
-    # RESULTATS
-    # -------------------------
-    with col_stats:
+    # =========================
+    # INDICATEURS
+    # =========================
+    with col1:
         st.subheader("📊 Indices spectraux")
-
         st.metric("NDVI", round(ndvi_zone, 3))
         st.metric("NDWI", round(ndwi_zone, 3))
         st.metric("BSI", round(bsi_zone, 3))
 
         st.markdown("---")
-        st.subheader("📈 Evolution temporelle")
-
-        st.write(f"Analyse de la salinité estimée pour l'année {annee}")
-        st.subheader("🧠 Prédiction GEOAI")
+        st.subheader("🧠 Diagnostic GEOAI")
 
         if pred == 2:
             st.error("🔴 Forte salinisation")
-            st.write("Zone fortement dégradée — risque élevé")
         elif pred == 1:
             st.warning("🟠 Salinisation modérée")
-            st.write("Zone en transition — surveillance nécessaire")
         else:
             st.success("🟢 Zone stable")
-            st.write("Faible risque de salinisation")
+
+    # =========================
+    # COURBE EVOLUTION
+    # =========================
+    with col2:
+        st.subheader("📈 Courbe d'évolution temporelle")
+
+        years = list(range(2016, 2026))
+        salinity_index = np.random.uniform(20, 80, len(years))
+
+        df = pd.DataFrame({
+            "Année": years,
+            "Indice de salinité": salinity_index
+        })
+
+        fig, ax = plt.subplots(figsize=(8, 4))
+        ax.plot(df["Année"], df["Indice de salinité"], marker='o')
+        ax.set_xlabel("Année")
+        ax.set_ylabel("Indice de salinité")
+        ax.set_title("Évolution temporelle de la salinisation")
+
+        st.pyplot(fig)
 
 else:
-    st.info("✏️ Dessine un polygone sur la carte pour lancer l’analyse GEOAI")
-
+    st.info("Dessinez un polygone sur la carte pour lancer l'analyse")
 
 # =========================
 # FOOTER
 # =========================
 st.markdown("""
 <div class="footer">
-🌍 Projet GEOAI - Salinisation des sols <br>
-🏫 Université : USSEIN (Master Géomatique) <br>
+🌍 Projet GEOAI - Salinisation des sols<br>
+🏫 Université : USSEIN (Master Géomatique)<br>
 ✍️ Magatte GUEYE
 </div>
 """, unsafe_allow_html=True)

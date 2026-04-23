@@ -1,7 +1,8 @@
-streamlit==1.33.0
-numpy==1.26.4
-pandas==2.2.2
-scikit-learn==1.4.2
-joblib==1.4.2
-folium==0.16.0
-streamlit-folium==0.18.0
+streamlit
+joblib
+numpy
+pandas
+folium
+streamlit-folium
+matplotlib
+scikit-learn

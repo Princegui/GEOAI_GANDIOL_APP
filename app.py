@@ -46,7 +46,7 @@ USE_DL = False  # True = Deep Learning / False = ML (.pkl)
 # CHARGEMENT MODELES
 # =========================
 if USE_DL:
-    model = keras.models.load_model("geoai_model.h5")
+   
     scaler = joblib.load("scaler_geoai.pkl")
 else:
     model = joblib.load("geoai_model.pkl")

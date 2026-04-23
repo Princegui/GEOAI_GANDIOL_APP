@@ -49,7 +49,7 @@ if USE_DL:
    
     scaler = joblib.load("scaler_geoai.pkl")
 else:
-    model = joblib.load("scaler_geoai.pkl")
+    model = joblib.load("geoai_model.pkl")
 
 # =========================
 # TITRE

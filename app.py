@@ -178,7 +178,7 @@ if map_data and map_data.get("last_active_drawing"):
     ax1.set_title("Comparaison entre salinité et NDVI")
 
     ax2 = ax1.twinx()
-    ax2.plot(df["Année"], df["NDVI"], marker="s", linestyle="--")
+    ax2.plot(df["Année"], df["NDVI"], marker="s", linestyle="--", color="green")
     ax2.set_ylabel("NDVI")
 
     st.pyplot(fig)

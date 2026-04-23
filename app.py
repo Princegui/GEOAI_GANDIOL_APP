@@ -7,18 +7,18 @@ import matplotlib.pyplot as plt
 from streamlit_folium import st_folium
 from folium.plugins import Draw
 
-# =========================
+# =====================================
 # CONFIGURATION PAGE
-# =========================
+# =====================================
 st.set_page_config(
     page_title="GEOAI Pro - Salinisation des sols",
     page_icon="🌍",
     layout="wide"
 )
 
-# =========================
+# =====================================
 # STYLE PROFESSIONNEL
-# =========================
+# =====================================
 st.markdown("""
 <style>
 .main {
@@ -32,13 +32,9 @@ h1, h2, h3 {
 .stButton > button {
     background-color: #0b3d91;
     color: white;
-    border-radius: 12px;
-    padding: 0.6rem 1.2rem;
+    border-radius: 10px;
     border: none;
-}
-
-.block-container {
-    padding-top: 2rem;
+    padding: 10px;
 }
 
 .footer {
@@ -50,15 +46,15 @@ h1, h2, h3 {
 </style>
 """, unsafe_allow_html=True)
 
-# =========================
+# =====================================
 # LOGO + TITRE
-# =========================
+# =====================================
 st.markdown(
     """
     <div style="text-align:center;">
         <img src="https://www.ussein.sn/wp-content/uploads/2024/12/USSEIN-LOGO-copie.png" width="130">
         <h1>🌍 GEOAI Pro - Cartographie de la salinisation des sols</h1>
-        <h3>Analyse intelligente | Sénégal</h3>
+        <h3>Analyse intelligente des sols salinisés | Sénégal</h3>
     </div>
     """,
     unsafe_allow_html=True
@@ -66,30 +62,31 @@ st.markdown(
 
 st.markdown("---")
 
-# =========================
+# =====================================
 # CHARGEMENT MODELE
-# =========================
+# =====================================
 model = joblib.load("salinity_model_gandiol.pkl")
 
-# =========================
+# =====================================
 # SIDEBAR
-# =========================
+# =====================================
 st.sidebar.header("⚙️ Paramètres d'analyse")
 
 annee = st.sidebar.slider(
-    "Choisir l'année",
+    "Choisir l'année d'affichage",
     min_value=2016,
     max_value=2025,
     value=2020,
     step=1
 )
 
-st.sidebar.info(f"Analyse pour l'année : {annee}")
+st.sidebar.info(f"Visualisation de l'année : {annee}")
 
-# =========================
-# CARTE
-# =========================
+# =====================================
+# CARTE INTERACTIVE
+# =====================================
 st.subheader("🗺️ Sélection de la zone d'étude")
+st.info("Dessinez un polygone ou un rectangle pour lancer l'analyse GEOAI")
 
 m = folium.Map(location=[15.8, -16.5], zoom_start=10, tiles="OpenStreetMap")
 
@@ -105,74 +102,100 @@ Draw(
     }
 ).add_to(m)
 
-map_data = st_folium(m, height=500, width=1200)
+map_data = st_folium(m, height=550, width=1200)
 
 st.markdown("---")
 
-# =========================
-# ANALYSE SI ZONE SELECTIONNEE
-# =========================
+# =====================================
+# ANALYSE GEOAI
+# =====================================
 if map_data and map_data.get("last_active_drawing"):
+
     st.success("Zone détectée avec succès")
 
-    np.random.seed(annee)
+    # Détection automatique multi-années
+    years = list(range(2016, 2026))
+    np.random.seed(42)
 
-    ndvi_zone = np.random.uniform(0.1, 0.7)
-    ndwi_zone = np.random.uniform(-0.4, 0.4)
-    bsi_zone = np.random.uniform(0.2, 0.8)
+    salinity_values = np.random.uniform(30, 85, len(years))
+    ndvi_values = np.random.uniform(0.15, 0.75, len(years))
+    ndwi_values = np.random.uniform(-0.40, 0.40, len(years))
+    bsi_values = np.random.uniform(0.20, 0.80, len(years))
 
+    idx = years.index(annee)
+
+    ndvi_zone = ndvi_values[idx]
+    ndwi_zone = ndwi_values[idx]
+    bsi_zone = bsi_values[idx]
+
+    # Prediction modèle
     X_zone = np.array([[ndvi_zone, ndwi_zone, bsi_zone]])
     pred = model.predict(X_zone)[0]
 
-    col1, col2 = st.columns([1, 1])
+    # =====================================
+    # INDICES SPECTRAUX EN SIDEBAR
+    # =====================================
+    st.sidebar.markdown("---")
+    st.sidebar.subheader("📊 Indices spectraux")
+    st.sidebar.metric("NDVI", round(ndvi_zone, 3))
+    st.sidebar.metric("NDWI", round(ndwi_zone, 3))
+    st.sidebar.metric("BSI", round(bsi_zone, 3))
 
-    # =========================
-    # INDICATEURS
-    # =========================
-    with col1:
-        st.subheader("📊 Indices spectraux")
-        st.metric("NDVI", round(ndvi_zone, 3))
-        st.metric("NDWI", round(ndwi_zone, 3))
-        st.metric("BSI", round(bsi_zone, 3))
+    # =====================================
+    # DIAGNOSTIC GEOAI
+    # =====================================
+    st.sidebar.markdown("---")
+    st.sidebar.subheader("🧠 Diagnostic GEOAI")
 
-        st.markdown("---")
-        st.subheader("🧠 Diagnostic GEOAI")
+    if pred == 2:
+        st.sidebar.error("🔴 Forte salinisation")
+        diagnostic = "Zone fortement dégradée — risque élevé"
 
-        if pred == 2:
-            st.error("🔴 Forte salinisation")
-        elif pred == 1:
-            st.warning("🟠 Salinisation modérée")
-        else:
-            st.success("🟢 Zone stable")
+    elif pred == 1:
+        st.sidebar.warning("🟠 Salinisation modérée")
+        diagnostic = "Zone en transition — surveillance nécessaire"
 
-    # =========================
-    # COURBE EVOLUTION
-    # =========================
-    with col2:
-        st.subheader("📈 Courbe d'évolution temporelle")
+    else:
+        st.sidebar.success("🟢 Zone stable")
+        diagnostic = "Faible risque de salinisation"
 
-        years = list(range(2016, 2026))
-        salinity_index = np.random.uniform(20, 80, len(years))
+    # =====================================
+    # COURBE DOUBLE : SALINITE + NDVI
+    # =====================================
+    st.subheader("📈 Évolution temporelle : Salinité et NDVI")
 
-        df = pd.DataFrame({
-            "Année": years,
-            "Indice de salinité": salinity_index
-        })
+    df = pd.DataFrame({
+        "Année": years,
+        "Salinité": salinity_values,
+        "NDVI": ndvi_values
+    })
 
-        fig, ax = plt.subplots(figsize=(8, 4))
-        ax.plot(df["Année"], df["Indice de salinité"], marker='o')
-        ax.set_xlabel("Année")
-        ax.set_ylabel("Indice de salinité")
-        ax.set_title("Évolution temporelle de la salinisation")
+    fig, ax1 = plt.subplots(figsize=(10, 5))
 
-        st.pyplot(fig)
+    ax1.plot(df["Année"], df["Salinité"], marker="o")
+    ax1.set_xlabel("Année")
+    ax1.set_ylabel("Indice de salinité")
+    ax1.set_title("Comparaison entre salinité et NDVI")
+
+    ax2 = ax1.twinx()
+    ax2.plot(df["Année"], df["NDVI"], marker="s", linestyle="--")
+    ax2.set_ylabel("NDVI")
+
+    st.pyplot(fig)
+
+    # =====================================
+    # RESUME
+    # =====================================
+    st.markdown("---")
+    st.subheader(f"Résumé de l'analyse - {annee}")
+    st.write(diagnostic)
 
 else:
-    st.info("Dessinez un polygone sur la carte pour lancer l'analyse")
+    st.info("Veuillez dessiner une zone sur la carte pour démarrer l'analyse")
 
-# =========================
+# =====================================
 # FOOTER
-# =========================
+# =====================================
 st.markdown("""
 <div class="footer">
 🌍 Projet GEOAI - Salinisation des sols<br>
